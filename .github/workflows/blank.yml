@@ -1,0 +1,63 @@
+name: Promote Files Between Branches
+
+on:
+  push:
+    branches:
+      - 'feature*'
+      - dev
+      - test
+
+jobs:
+  promote-to-dev:
+    if: startsWith(github.ref, 'refs/heads/feature')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Promote to Dev
+        run: |
+          git checkout dev
+          git merge ${{ github.ref_name }} --no-ff --commit -m "Promote from ${{ github.ref_name }} to dev"
+          git push origin dev
+
+  promote-to-test:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Promote to Test
+        run: |
+          git checkout test
+          git merge dev --no-ff --commit -m "Promote from dev to test"
+          git push origin test
+
+  promote-to-production:
+    if: github.ref == 'refs/heads/test'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Promote to Production
+        run: |
+          git checkout main
+          git merge test --no-ff --commit -m "Promote from test to main"
+          git push origin main
